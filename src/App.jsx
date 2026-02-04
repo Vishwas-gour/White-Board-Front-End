@@ -1,10 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Client } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
+import SockJS from "sockjs-client/dist/sockjs";
+
 import axios from "axios";
 import "./css/App.css";
 
-const API_URL = "http://localhost:8080";
+const API_URL =
+  window.location.hostname === "localhost"
+    ? "http://localhost:8080"
+    : "https://white-board-back-end.onrender.com";
+
 const SESSION_ID = "default-session";
 
 function App() {
@@ -43,7 +48,7 @@ function App() {
     const client = new Client({
       webSocketFactory: () => new SockJS(`${API_URL}/ws`),
       reconnectDelay: 5000,
-      debug: () => {},
+      debug: () => { },
 
       onConnect: () => {
         console.log("STOMP connected");
@@ -53,15 +58,7 @@ function App() {
           if (data.userId === userId) return;
 
           if (data.type === "draw") {
-            drawLine(
-              data.startX,
-              data.startY,
-              data.endX,
-              data.endY,
-              data.color,
-              data.lineWidth,
-              data.tool
-            );
+            drawLine(data.startX, data.startY, data.endX, data.endY, data.color, data.lineWidth, data.tool);
           }
 
           if (data.type === "clear") {
@@ -87,6 +84,8 @@ function App() {
   ========================== */
   const loadHistory = async () => {
     try {
+      console.log(`${API_URL}/api/whiteboard/history/${SESSION_ID}`);
+
       const res = await axios.get(
         `${API_URL}/api/whiteboard/history/${SESSION_ID}`
       );
@@ -206,7 +205,7 @@ function App() {
     stompClientRef.current?.connected &&
       stompClientRef.current.publish({
         destination: "/app/draw",
-        
+
         body: JSON.stringify({
           type: "clear",
           sessionId: SESSION_ID,
@@ -230,47 +229,24 @@ function App() {
       <div className="toolbar">
         <div>
           <label>Brush</label>
-          <input
-            type="range"
-            min="1"
-            max="40"
-            value={lineWidth}
-            onChange={(e) => setLineWidth(+e.target.value)}
-          />
+          <input type="range" min="1" max="40" value={lineWidth} onChange={(e) => setLineWidth(+e.target.value)} />
           <span>{lineWidth}px</span>
         </div>
 
         <div>
           <label>Color</label>
-          <input
-            type="color"
-            value={color}
-            onChange={(e) => {
-              setColor(e.target.value);
-              setTool("draw");
-            }}
-          />
+          <input type="color" value={color} onChange={(e) => { setColor(e.target.value); setTool("draw"); }} />
         </div>
 
-        <button
-          className={tool === "draw" ? "active" : ""}
-          onClick={() => setTool("draw")}
-        >
-          ✏️ Draw
-        </button>
+        <button className={tool === "draw" ? "active" : ""} onClick={() => setTool("draw")}>✏️ Draw</button>
 
-        <button
-          className={tool === "erase" ? "active" : ""}
-          onClick={() => setTool("erase")}
-        >
-          🧽 Eraser
-        </button>
+        <button className={tool === "erase" ? "active" : ""} onClick={() => setTool("erase")}>  🧽 Eraser</button>
 
         <button onClick={handleClear}>🗑 Clear</button>
       </div>
 
       <canvas ref={canvasRef} className="canvas" onMouseDown={startDrawing}
-       onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing}/>
+        onMouseMove={draw} onMouseUp={stopDrawing} onMouseLeave={stopDrawing} />
     </div>
   );
 }
